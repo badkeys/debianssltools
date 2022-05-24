@@ -1,0 +1,86 @@
+#!/bin/bash
+set -euo pipefail
+
+# creates keys with Debian OpenSSL bug, you need to run
+# fetchdwk first to get the binaries and libs.
+
+# one of alpha arm hppa i386 ia64 m68k mips mipsel powerpc s390 sparc
+ARCH=amd64
+# should be be32, le32 or le64
+ADIR=le64
+
+ALLBITS="1024 2048"
+
+DOSSL=1
+DOSSH=1
+DODSA=1
+
+PIDS=$(seq 0 32767)
+#PIDS="17 39 5172 32767"
+
+if [ -e o ]; then
+	echo "outdir o exists"
+	exit 1
+fi
+
+DOTRNDHOME=$(mktemp -d)
+dd if=/dev/urandom of=$DOTRNDHOME/.rnd bs=1024 count=1
+PWDP=$(pwd)
+
+for bits in $ALLBITS; do
+
+	if [ $DOSSL -eq 1 ]; then
+		ODIR=o/rsa$bits/ssl/$ADIR/
+		mkdir -p $ODIR
+
+		for pid in $PIDS; do
+
+			echo Creating keys for pid $pid , $bits RSA keys
+
+			export MAGICPID=$pid
+
+			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-etch/ \
+				HOME=/dev/null dwk-$ARCH-etch/openssl genrsa $bits \
+				>$ODIR/$pid-nornd-old.key
+
+			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-lenny/ \
+				HOME=/dev/null dwk-$ARCH-lenny/openssl genrsa $bits \
+				>$ODIR/$pid-nornd-new.key
+
+			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-lenny/ \
+				HOME=$DOTRNDHOME dwk-$ARCH-lenny/openssl genrsa $bits \
+				>$ODIR/$pid-rnd.key
+		done
+	fi
+
+	if [ $DOSSH -eq 1 ]; then
+
+		ODIR=o/rsa$bits/ssh/$ADIR/
+		mkdir -p $ODIR
+
+		for pid in $PIDS; do
+
+			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-lenny/ \
+				dwk-$ARCH-lenny/ssh-keygen -N '' -t rsa -b $bits \
+				-f $ODIR/$pid.key
+
+		done
+
+	fi
+
+	if [ $DODSA -eq 1 ]; then
+
+		ODIR=o/dsa$bits/ssh/$ADIR/
+		mkdir -p $ODIR
+
+		for pid in $PIDS; do
+
+			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-lenny/ \
+				dwk-$ARCH-lenny/ssh-keygen -N '' -t dsa -b $bits \
+				-f $ODIR/$pid.key
+
+		done
+
+	fi
+
+done

@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# This script fetches the binaries and libs needed to replicate
+# the Debian OpenSSL bug for all supported architectures.
+
+PACKAGES="libssl0.9.8
+openssl
+openssh-client
+libkrb53
+libkeyutils1
+libcomerr2"
+
+PRE="https://snapshot.debian.org/archive/debian/20080101T000000Z"
+
+for ARCH in alpha amd64 arm hppa i386 ia64 m68k mips mipsel powerpc s390 sparc; do
+
+	for DIST in lenny etch; do
+
+		DDIR=$(pwd)/dwk-$ARCH-$DIST/
+		TD="$(mktemp -d)"
+		echo "Using tempdir $TD for $DDIR"
+
+		pushd $TD
+
+		wget $PRE/dists/$DIST/main/binary-$ARCH/Packages.bz2
+
+		for p in $PACKAGES; do
+			url=$(bzgrep -A20 "Package: $p" Packages.bz2 | grep -m 1 "Filename:" | sed -e 's:.* ::g')
+			fn=$(echo $url | sed -e 's:.*/::g')
+			wget $PRE/$url
+			ar x $fn
+			tar xf data.tar.gz
+		done
+
+		mkdir -p $DDIR
+		cp usr/bin/openssl usr/bin/ssh-keygen $DDIR
+		cp usr/lib/*.so.* lib/*.so.* $DDIR
+
+		popd
+
+	done
+done
