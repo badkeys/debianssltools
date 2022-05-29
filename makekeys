@@ -35,8 +35,7 @@ for bits in $ALLBITS; do
 
 		for pid in $PIDS; do
 
-			echo Creating keys for pid $pid , $bits RSA keys
-
+			echo Creating openssl keys for pid $pid , $bits RSA keys
 			export MAGICPID=$pid
 
 			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-etch/ \
@@ -55,10 +54,14 @@ for bits in $ALLBITS; do
 
 	if [ $DOSSH -eq 1 ]; then
 
+
 		ODIR=o/rsa$bits/ssh/$ADIR/
 		mkdir -p $ODIR
 
 		for pid in $PIDS; do
+
+			echo Creating openssh keys for pid $pid , $bits RSA keys
+			export MAGICPID=$pid
 
 			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-lenny/ \
 				dwk-$ARCH-lenny/ssh-keygen -N '' -t rsa -b $bits \
@@ -68,12 +71,15 @@ for bits in $ALLBITS; do
 
 	fi
 
-	if [ $DODSA -eq 1 ]; then
+	if [ $DODSA -eq 1 ] && [ $bits -eq 1024 ]; then
 
 		ODIR=o/dsa$bits/ssh/$ADIR/
 		mkdir -p $ODIR
 
 		for pid in $PIDS; do
+
+			echo Creating openssh keys for pid $pid , $bits DSA keys
+			export MAGICPID=$pid
 
 			LD_PRELOAD=$PWDP/getpidbin/getpid$ARCH.so LD_LIBRARY_PATH=$PWDP/dwk-$ARCH-lenny/ \
 				dwk-$ARCH-lenny/ssh-keygen -N '' -t dsa -b $bits \
