@@ -52,7 +52,7 @@ for bits in $ALLBITS; do
 		done
 	fi
 
-	if [ $DOSSH -eq 1 ]; then
+	if [ $DOSSH -eq 1 ] && [ $bits -ge 768 ]; then
 
 
 		ODIR=o/rsa$bits/ssh/$ADIR/
